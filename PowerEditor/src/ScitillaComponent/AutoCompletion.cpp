@@ -421,7 +421,7 @@ void AutoCompletion::getCloseTag(char *closeTag, size_t closeTagSize, size_t car
 	{
 		// Ignore "?xml"
 		if (strnicmp(tagHead + 1, "?xml", strlen("?xml")) == 0)
-			return;
+		return;
 	}
 
 	closeTag[0] = '<';
@@ -713,6 +713,10 @@ void AutoCompletion::update(int character)
 
 	//If autocomplete already active, let Scintilla handle it
 	if (_pEditView->execute(SCI_AUTOCACTIVE) != 0)
+		return;
+
+	// let the plugins the possibility to simulate nppGUI._autocStatus == nppGUI.autoc_none
+	if (disabledOnCharAdded)
 		return;
 
 	const int wordSize = 64;
