@@ -368,8 +368,19 @@ bool AutoCompletion::showFunctionComplete()
 	return false;
 }
 
-void AutoCompletion::getCloseTag(char *closeTag, size_t closeTagSize, size_t caretPos, bool isHTML)
+void AutoCompletion::getCloseTag(char *closeTag, size_t closeTagSize, size_t caretPos, LangType language)
 {
+	char prev = (char)_pEditView->execute(SCI_GETCHARAT, caretPos - 2);
+	char prevprev = (char)_pEditView->execute(SCI_GETCHARAT, caretPos - 3);
+
+	// Closing a tag (i.e. "-->") will be ignored
+	if (prevprev == '-' && prev == '-')
+		return;
+
+	// "<toto/>" and "<toto arg="0" />" will be ignored
+	if (prev == '/')
+		return;
+
 	int flags = SCFIND_REGEXP | SCFIND_POSIX;
 	_pEditView->execute(SCI_SETSEARCHFLAGS, flags);
 	TCHAR tag2find[] = TEXT("<[^\\s>]*");
@@ -396,9 +407,9 @@ void AutoCompletion::getCloseTag(char *closeTag, size_t closeTagSize, size_t car
 	if (strncmp(tagHead, "<!--", 4) == 0) // Comments will be ignored
 		return;
 
-	if (isHTML) // for HTML: "br", "hr", "img", "link", "!doctype" and "meta" will be ignored
+	if (language == L_HTML) // for HTML: "br", "hr", "img", "link", "!doctype" and "meta" will be ignored
 	{
-		char *disallowedTags[] = { "br", "hr", "img", "link", "meta", "!doctype" };
+		const char *disallowedTags[] = { "br", "hr", "img", "link", "meta", "!doctype" };
 		size_t disallowedTagsLen = sizeof(disallowedTags) / sizeof(char *);
 		for (size_t i = 0; i < disallowedTagsLen; ++i)
 		{
@@ -406,12 +417,12 @@ void AutoCompletion::getCloseTag(char *closeTag, size_t closeTagSize, size_t car
 				return;
 		}
 	}
-
-	char tagTail[2];
-	_pEditView->getText(tagTail, caretPos-2, caretPos-1);
-
-	if (tagTail[0] == '/') // "<toto/>" and "<toto arg="0" />" will be ignored
-		return;
+	else if (language == L_XML)
+	{
+		// Ignore "?xml"
+		if (strnicmp(tagHead + 1, "?xml", strlen("?xml")) == 0)
+			return;
+	}
 
 	closeTag[0] = '<';
 	closeTag[1] = '/';
@@ -631,7 +642,7 @@ void AutoCompletion::insertMatchedChars(int character, const MatchedPairConf & m
 		{
 			if (matchedPairConf._doHtmlXmlTag && (_curLang == L_HTML || _curLang == L_XML))
 			{
-				getCloseTag(closeTag, tagMaxLen, caretPos, _curLang == L_HTML);
+				getCloseTag(closeTag, tagMaxLen, caretPos, _curLang);
 				if (closeTag[0] != '\0')
 					matchedChars = closeTag;
 			}
