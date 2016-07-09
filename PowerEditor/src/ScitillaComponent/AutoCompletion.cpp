@@ -421,7 +421,7 @@ void AutoCompletion::getCloseTag(char *closeTag, size_t closeTagSize, size_t car
 	{
 		// Ignore "?xml"
 		if (strnicmp(tagHead + 1, "?xml", strlen("?xml")) == 0)
-		return;
+			return;
 	}
 
 	closeTag[0] = '<';
@@ -716,7 +716,7 @@ void AutoCompletion::update(int character)
 		return;
 
 	// let the plugins the possibility to simulate nppGUI._autocStatus == nppGUI.autoc_none
-	if (disabledOnCharAdded)
+	if (_disabledOnCharAdded)
 		return;
 
 	const int wordSize = 64;

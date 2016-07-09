@@ -94,7 +94,7 @@ public:
 	void callTipClick(int direction);
 	void getCloseTag(char *closeTag, size_t closeTagLen, size_t caretPos, LangType language);
 
-	bool disabledOnCharAdded;
+	bool _disabledOnCharAdded;
 
 private:
 	bool _funcCompletionActive;
