@@ -2874,10 +2874,9 @@ void NppParameters::insertScintKey(TiXmlNode *scintKeyRoot, const ScintillaKeyMa
 	size_t size = scintKeyMap.getSize();
 	if (size > 1)
 	{
-		TiXmlNode * keyNext;
 		for (size_t i = 1; i < size; ++i)
 		{
-			keyNext = keyRoot->InsertEndChild(TiXmlElement(TEXT("NextKey")));
+			TiXmlNode *keyNext = keyRoot->InsertEndChild(TiXmlElement(TEXT("NextKey")));
 			key = scintKeyMap.getKeyComboByIndex(i);
 			keyNext->ToElement()->SetAttribute(TEXT("Ctrl"), key._isCtrl?TEXT("yes"):TEXT("no"));
 			keyNext->ToElement()->SetAttribute(TEXT("Alt"), key._isAlt?TEXT("yes"):TEXT("no"));
@@ -3105,20 +3104,17 @@ void NppParameters::feedUserSettings(TiXmlNode *settingsRoot)
 void NppParameters::feedUserKeywordList(TiXmlNode *node)
 {
 	const TCHAR * udlVersion = _userLangArray[_nbUserLang - 1]->_udlVersion.c_str();
-	const TCHAR * keywordsName = nullptr;
-	TCHAR *kwl = nullptr;
 	int id = -1;
 
 	for (TiXmlNode *childNode = node->FirstChildElement(TEXT("Keywords"));
 		childNode ;
 		childNode = childNode->NextSibling(TEXT("Keywords")))
 	{
-		keywordsName = (childNode->ToElement())->Attribute(TEXT("name"));
-		kwl = nullptr;
-
+		const TCHAR * keywordsName = (childNode->ToElement())->Attribute(TEXT("name"));
 		TiXmlNode *valueNode = childNode->FirstChild();
 		if (valueNode)
 		{
+			TCHAR *kwl = nullptr;
 			if (!lstrcmp(udlVersion, TEXT("")) && !lstrcmp(keywordsName, TEXT("Delimiters")))	// support for old style (pre 2.0)
 			{
 				basic_string<TCHAR> temp;
@@ -3174,7 +3170,14 @@ void NppParameters::feedUserKeywordList(TiXmlNode *node)
 				if (globalMappper().keywordIdMapper.find(keywordsName) != globalMappper().keywordIdMapper.end())
 				{
 					id = globalMappper().keywordIdMapper[keywordsName];
-					lstrcpy(_userLangArray[_nbUserLang - 1]->_keywordLists[id], kwl);
+					if (_tcslen(kwl) < max_char)
+					{
+						lstrcpy(_userLangArray[_nbUserLang - 1]->_keywordLists[id], kwl);
+					}
+					else
+					{
+						lstrcpy(_userLangArray[_nbUserLang - 1]->_keywordLists[id], TEXT("imported string too long, needs to be < max_char(30720)"));
+					}
 				}
 			}
 		}
@@ -3183,14 +3186,13 @@ void NppParameters::feedUserKeywordList(TiXmlNode *node)
 
 void NppParameters::feedUserStyles(TiXmlNode *node)
 {
-	const TCHAR *styleName = NULL;
 	int id = -1;
 
 	for (TiXmlNode *childNode = node->FirstChildElement(TEXT("WordsStyle"));
 		childNode ;
 		childNode = childNode->NextSibling(TEXT("WordsStyle")))
 	{
-		styleName = (childNode->ToElement())->Attribute(TEXT("name"));
+		const TCHAR *styleName = (childNode->ToElement())->Attribute(TEXT("name"));
 		if (styleName)
 		{
 			if (globalMappper().styleIdMapper.find(styleName) != globalMappper().styleIdMapper.end())
@@ -4238,7 +4240,6 @@ void NppParameters::feedGUIParameters(TiXmlNode *node)
 			int g5 = 0; // up to 48
 			int g6 = 0; // up to 56
 			int g7 = 0; // up to 64
-			const int nbMax = 64;
 
 			// TODO some refactoring needed here....
 			{
@@ -4284,10 +4285,6 @@ void NppParameters::feedGUIParameters(TiXmlNode *node)
 						g7 = i;
 				}
 			}
-
-			bool langArray[nbMax];
-			for (int i = 0 ; i < nbMax ; ++i)
-				langArray[i] = false;
 
 			UCHAR mask = 1;
 			for (int i = 0 ; i < 8 ; ++i)
@@ -4569,7 +4566,6 @@ void NppParameters::feedGUIParameters(TiXmlNode *node)
 			if (n)
 			{
 				const TCHAR* val = n->Value();
-				val = n->Value();
 				if (val)
 					_nppGUI._definedWorkspaceExt = val;
 			}

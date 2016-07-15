@@ -612,7 +612,7 @@ BufferID FileManager::loadFile(const TCHAR * filename, Document doc, int encodin
 	if (res)
 	{
 		Buffer* newBuf = new Buffer(this, _nextBufferID, doc, DOC_REGULAR, fullpath);
-		BufferID id = (BufferID) newBuf;
+		BufferID id = static_cast<BufferID>(newBuf);
 		newBuf->_id = id;
 
 		if (backupFileName != NULL)
@@ -805,22 +805,30 @@ bool FileManager::backupCurrentBuffer()
 			// Synchronization
 			// This method is called from 2 differents place, so synchronization is important
 			HANDLE writeEvent = ::OpenEvent(EVENT_ALL_ACCESS, TRUE, TEXT("nppWrittingEvent"));
-			if (!writeEvent)
+			if (not writeEvent)
 			{
 				// no thread yet, create a event with non-signaled, to block all threads
 				writeEvent = ::CreateEvent(NULL, TRUE, FALSE, TEXT("nppWrittingEvent"));
+				if (not writeEvent)
+				{
+					printStr(TEXT("CreateEvent problem in backupCurrentBuffer()!"));
+					return false;
+				}
 			}
 			else
 			{
 				if (::WaitForSingleObject(writeEvent, INFINITE) != WAIT_OBJECT_0)
 				{
-					// problem!!!
 					printStr(TEXT("WaitForSingleObject problem in backupCurrentBuffer()!"));
 					return false;
 				}
 
 				// unlocled here, set to non-signaled state, to block all threads
-				::ResetEvent(writeEvent);
+				if (not ::ResetEvent(writeEvent))
+				{
+					printStr(TEXT("ResetEvent problem in backupCurrentBuffer()!"));
+					return false;
+				}
 			}
 
 			UniMode mode = buffer->getUnicodeMode();
@@ -1222,7 +1230,7 @@ BufferID FileManager::newEmptyDocument()
 
 	Document doc = (Document)_pscratchTilla->execute(SCI_CREATEDOCUMENT);	//this already sets a reference for filemanager
 	Buffer* newBuf = new Buffer(this, _nextBufferID, doc, DOC_UNNAMED, newTitle.c_str());
-	BufferID id = (BufferID)newBuf;
+	BufferID id = static_cast<BufferID>(newBuf);
 	newBuf->_id = id;
 	_buffers.push_back(newBuf);
 	++_nrBufs;
@@ -1240,7 +1248,7 @@ BufferID FileManager::bufferFromDocument(Document doc, bool dontIncrease, bool d
 	if (!dontRef)
 		_pscratchTilla->execute(SCI_ADDREFDOCUMENT, 0, doc);	//set reference for FileManager
 	Buffer* newBuf = new Buffer(this, _nextBufferID, doc, DOC_UNNAMED, newTitle.c_str());
-	BufferID id = (BufferID)newBuf;
+	BufferID id = static_cast<BufferID>(newBuf);
 	newBuf->_id = id;
 	_buffers.push_back(newBuf);
 	++_nrBufs;

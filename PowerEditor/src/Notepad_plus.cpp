@@ -2434,10 +2434,9 @@ int Notepad_plus::findMachedBracePos(size_t startPos, size_t endPos, char target
 	if (startPos == endPos)
 		return -1;
 
-	int balance = 0;
-
 	if (startPos > endPos) // backward
 	{
+		int balance = 0;
 		for (int i = int(startPos); i >= int(endPos); --i)
 		{
 			char aChar = (char)_pEditView->execute(SCI_GETCHARAT, i);
@@ -4985,7 +4984,6 @@ void Notepad_plus::loadCommandlineParams(const TCHAR * commandLine, CmdLineParam
 
 	NppParameters *nppParams = NppParameters::getInstance();
 	FileNameStringSplitter fnss(commandLine);
-	const TCHAR *pFn = NULL;
 
 	// loading file as session file is allowed only when there is only one file
 	if (pCmdParams->_isSessionFile && fnss.size() == 1)
@@ -5008,7 +5006,7 @@ void Notepad_plus::loadCommandlineParams(const TCHAR * commandLine, CmdLineParam
 	BufferID lastOpened = BUFFER_INVALID;
 	for (int i = 0, len = fnss.size(); i < len ; ++i)
 	{
-		pFn = fnss.getFileName(i);
+		const TCHAR *pFn = fnss.getFileName(i);
 		if (!pFn) return;
 
 		BufferID bufID = doOpen(pFn, recursive, readOnly);
@@ -5964,10 +5962,11 @@ DWORD WINAPI Notepad_plus::threadTextPlayer(void *params)
 	// random seed generation needs only one time.
 	srand((unsigned int)time(NULL));
 
-	HWND hNpp = ((TextPlayerParams *)params)->_nppHandle;
-	ScintillaEditView *pCurrentView = ((TextPlayerParams *)params)->_pCurrentView;
-	const char *text2display = ((TextPlayerParams *)params)->_text2display;
-	bool shouldBeTrolling = ((TextPlayerParams *)params)->_shouldBeTrolling;
+	TextPlayerParams* textPlayerParams = static_cast<TextPlayerParams*>(params);
+	HWND hNpp = textPlayerParams->_nppHandle;
+	ScintillaEditView *pCurrentView = textPlayerParams->_pCurrentView;
+	const char *text2display = textPlayerParams->_text2display;
+	bool shouldBeTrolling = textPlayerParams->_shouldBeTrolling;
 
 	// Open a new document
     ::SendMessage(hNpp, NPPM_MENUCOMMAND, 0, IDM_FILE_NEW);
@@ -6042,7 +6041,7 @@ DWORD WINAPI Notepad_plus::threadTextPlayer(void *params)
     }
 
 	//writeLog(TEXT("c:\\tmp\\log.txt"), "\n\n\n\n");
-	const char * quoter = ((TextPlayerParams *)params)->_quoter;
+	const char * quoter = textPlayerParams->_quoter;
 	string quoter_str = quoter;
 	size_t pos = quoter_str.find("Anonymous");
 	if (pos == string::npos)
@@ -6075,15 +6074,16 @@ DWORD WINAPI Notepad_plus::threadTextPlayer(void *params)
 
 DWORD WINAPI Notepad_plus::threadTextTroller(void *params)
 {
-	WaitForSingleObject(((TextTrollerParams *)params)->_mutex, INFINITE);
+	TextTrollerParams *textTrollerParams = static_cast<TextTrollerParams *>(params);
+	WaitForSingleObject(textTrollerParams->_mutex, INFINITE);
 
 	// random seed generation needs only one time.
 	srand((unsigned int)time(NULL));
 
-	ScintillaEditView *pCurrentView = ((TextTrollerParams *)params)->_pCurrentView;
-	const char *text2display = ((TextTrollerParams *)params)->_text2display;
+	ScintillaEditView *pCurrentView = textTrollerParams->_pCurrentView;
+	const char *text2display = textTrollerParams->_text2display;
 	HWND curScintilla = pCurrentView->getHSelf();
-	BufferID targetBufID = ((TextTrollerParams *)params)->_targetBufID;
+	BufferID targetBufID = textTrollerParams->_targetBufID;
 
 	for (size_t i = 0, len = strlen(text2display); i < len; ++i)
     {
@@ -6097,7 +6097,7 @@ DWORD WINAPI Notepad_plus::threadTextTroller(void *params)
 		BufferID currentBufID = pCurrentView->getCurrentBufferID();
 		if (currentBufID != targetBufID)
 		{
-			ReleaseMutex(((TextTrollerParams *)params)->_mutex);
+			ReleaseMutex(textTrollerParams->_mutex);
 			return TRUE;
 		}
         ::SendMessage(curScintilla, SCI_APPENDTEXT, 1, (LPARAM)charToShow);
@@ -6148,7 +6148,7 @@ DWORD WINAPI Notepad_plus::threadTextTroller(void *params)
 		::SendMessage(pCurrentView->getHSelf(), SCI_DELETEBACK, 0, 0);
 	}
 
-	ReleaseMutex(((TextTrollerParams *)params)->_mutex);
+	ReleaseMutex(textTrollerParams->_mutex);
 	return TRUE;
 }
 
